@@ -12,6 +12,43 @@ from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QFont
 import paramiko
 
+# Configuration Constants
+class Config:
+    """Configuration settings for the Training UI"""
+    
+    # Server Connection Settings
+    SERVER_IP = "10.47.172.163"
+    SERVER_USERNAME = "klac"
+    SERVER_PASSWORD = "123456"
+    
+    # Remote Path Settings
+    BASE_PATH = "/home/dlhome/kla-tencor/DL_Detect"
+    
+    # Training Paths
+    TRAIN_DATA_DIR = f"{BASE_PATH}/Train_Validation/Input/PLStar"
+    TRAIN_DATA_ARCHIVE = f"{TRAIN_DATA_DIR}.tar"
+    
+    # Inference Paths
+    INFERENCE_DATA_DIR = f"{BASE_PATH}/Inference/Input/PLStar"
+    INFERENCE_DATA_ARCHIVE = f"{INFERENCE_DATA_DIR}.tar"
+    
+    # Model Paths
+    MODEL_DIR = f"{BASE_PATH}/Models/PLStar"
+    MODEL_FILE = f"{MODEL_DIR}/model.pth"
+    
+    # Training Script Path
+    TRAINING_SCRIPT = f"{BASE_PATH}/train.py"
+    
+    # Default Training Parameters
+    DEFAULT_EPOCHS = 100
+    DEFAULT_BATCH_SIZE = 4
+    DEFAULT_LEARNING_RATE = 0.0001
+    
+    # UI Settings
+    SIDEBAR_WIDTH = 200
+    WINDOW_WIDTH = 1200
+    WINDOW_HEIGHT = 800
+
 class SSHConnectionThread(QThread):
     """Thread for handling SSH connections to avoid UI blocking"""
     connection_result = pyqtSignal(bool, str)
@@ -156,7 +193,7 @@ class TrainingThread(QThread):
             batch_size = self.training_params['batch_size']
             learning_rate = self.training_params['learning_rate']
             
-            command = f"cd /home/dlhome/kla-tencor/DL_Detect && CUDA_VISIBLE_DEVICES={gpu_id} python train.py --epochs {epochs} --batch_size {batch_size} --learning_rate {learning_rate}"
+            command = f"cd {Config.BASE_PATH} && CUDA_VISIBLE_DEVICES={gpu_id} python train.py --epochs {epochs} --batch_size {batch_size} --learning_rate {learning_rate}"
             
             stdin, stdout, stderr = ssh.exec_command(command)
             
@@ -190,19 +227,19 @@ class ServerConnectionModule(QWidget):
         # Server info (read-only input fields)
         username_layout = QHBoxLayout()
         username_layout.addWidget(QLabel("Username:"))
-        self.username_edit = QLineEdit("klac")
+        self.username_edit = QLineEdit(Config.SERVER_USERNAME)
         self.username_edit.setReadOnly(True)
         username_layout.addWidget(self.username_edit)
         
         ip_layout = QHBoxLayout()
         ip_layout.addWidget(QLabel("IP Address:"))
-        self.ip_edit = QLineEdit("10.47.172.163")
+        self.ip_edit = QLineEdit(Config.SERVER_IP)
         self.ip_edit.setReadOnly(True)
         ip_layout.addWidget(self.ip_edit)
         
         password_layout = QHBoxLayout()
         password_layout.addWidget(QLabel("Password:"))
-        self.password_edit = QLineEdit("123456")
+        self.password_edit = QLineEdit(Config.SERVER_PASSWORD)
         self.password_edit.setReadOnly(True)
         self.password_edit.setEchoMode(QLineEdit.Password)
         password_layout.addWidget(self.password_edit)
@@ -281,7 +318,7 @@ class ModelTrainingModule(QWidget):
         epoch_layout.addWidget(QLabel("Epochs:"))
         self.epochs_spin = QSpinBox()
         self.epochs_spin.setRange(1, 1000)
-        self.epochs_spin.setValue(100)
+        self.epochs_spin.setValue(Config.DEFAULT_EPOCHS)
         epoch_layout.addWidget(self.epochs_spin)
         epoch_layout.addStretch()
         params_layout.addLayout(epoch_layout)
@@ -295,7 +332,7 @@ class ModelTrainingModule(QWidget):
         batch_layout.addWidget(QLabel("Batch Size:"))
         self.batch_spin = QSpinBox()
         self.batch_spin.setRange(1, 64)
-        self.batch_spin.setValue(4)
+        self.batch_spin.setValue(Config.DEFAULT_BATCH_SIZE)
         batch_layout.addWidget(self.batch_spin)
         batch_layout.addStretch()
         advanced_layout.addLayout(batch_layout)
@@ -306,7 +343,7 @@ class ModelTrainingModule(QWidget):
         self.lr_spin = QDoubleSpinBox()
         self.lr_spin.setRange(0.0001, 1.0)
         self.lr_spin.setDecimals(4)
-        self.lr_spin.setValue(0.0001)
+        self.lr_spin.setValue(Config.DEFAULT_LEARNING_RATE)
         lr_layout.addWidget(self.lr_spin)
         lr_layout.addStretch()
         advanced_layout.addLayout(lr_layout)
@@ -430,13 +467,11 @@ class ModelTrainingModule(QWidget):
             QMessageBox.warning(self, "Warning", "Please establish server connection first!")
             return
             
-        remote_path = "/home/dlhome/kla-tencor/DL_Detect/Train_Validation/Input/PLStar.tar"
-        
         self.training_status.append("Starting dataset upload...")
         self.upload_file_btn.setEnabled(False)
         
-        self.upload_thread = FileTransferThread("10.47.172.163", "klac", "123456", 
-                                              self.selected_folder, remote_path, 'upload')
+        self.upload_thread = FileTransferThread(Config.SERVER_IP, Config.SERVER_USERNAME, Config.SERVER_PASSWORD, 
+                                              self.selected_folder, Config.TRAIN_DATA_ARCHIVE, 'upload')
         self.upload_thread.transfer_result.connect(self.on_upload_result)
         self.upload_thread.progress_update.connect(self.on_upload_progress)
         self.upload_thread.start()
@@ -463,7 +498,7 @@ class ModelTrainingModule(QWidget):
         self.training_status.append("Initializing training...")
         self.start_training_btn.setEnabled(False)
         
-        self.training_thread = TrainingThread("10.47.172.163", "klac", "123456", training_params)
+        self.training_thread = TrainingThread(Config.SERVER_IP, Config.SERVER_USERNAME, Config.SERVER_PASSWORD, training_params)
         self.training_thread.training_result.connect(self.on_training_result)
         self.training_thread.progress_update.connect(self.on_training_progress)
         self.training_thread.start()
@@ -480,10 +515,8 @@ class ModelTrainingModule(QWidget):
     def save_model(self):
         save_path = QFileDialog.getSaveFileName(self, "Save Model", "", "Model files (*.pth *.pt)")
         if save_path[0]:
-            remote_model_path = "/home/dlhome/kla-tencor/DL_Detect/Models/PLStar/model.pth"
-            
-            self.download_thread = FileTransferThread("10.47.172.163", "klac", "123456",
-                                                    save_path[0], remote_model_path, 'download')
+            self.download_thread = FileTransferThread(Config.SERVER_IP, Config.SERVER_USERNAME, Config.SERVER_PASSWORD,
+                                                    save_path[0], Config.MODEL_FILE, 'download')
             self.download_thread.transfer_result.connect(self.on_download_result)
             self.download_thread.start()
             
