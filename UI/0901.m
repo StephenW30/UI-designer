@@ -41,7 +41,6 @@ classdef WaferMapAnnotator < matlab.apps.AppBase
         HighClipLabel              matlab.ui.control.Label
         HighClipValueLabel         matlab.ui.control.Label
         ResetClipButton            matlab.ui.control.Button
-        AutoScaleButton            matlab.ui.control.Button
         
         % Annotation Controls Panel
         AnnotationControlsPanel    matlab.ui.container.Panel
@@ -127,7 +126,7 @@ classdef WaferMapAnnotator < matlab.apps.AppBase
             % Create UIFigure and hide until all components are created
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1400 800];
-            app.UIFigure.Name = 'Wafer Map Annotator (Enhanced - Fixed Undo/Redo)';
+            app.UIFigure.Name = 'Wafer Map Annotator (Enhanced - Horizontal Layout)';
             app.UIFigure.Resize = 'on';
 
             % Create MainGrid - 3 columns: Hazemap, Annotation Mask, Control Panel
@@ -277,56 +276,64 @@ classdef WaferMapAnnotator < matlab.apps.AppBase
             app.EnhancementPanel.Layout.Row = 2;
             app.EnhancementPanel.Layout.Column = 1;
 
-            % Create EnhancementGrid
+            % Create EnhancementGrid with modified layout for horizontal arrangement
             app.EnhancementGrid = uigridlayout(app.EnhancementPanel);
-            app.EnhancementGrid.RowHeight = {'fit', 'fit', 'fit', 'fit', 'fit', 'fit'};
-            app.EnhancementGrid.ColumnWidth = {'1x', '1x'};
+            app.EnhancementGrid.RowHeight = {'fit', 'fit', 'fit', 'fit'};
+            app.EnhancementGrid.ColumnWidth = {'1x', '1x'};  % Two equal columns
 
-            % Create LowClipLabel
+            % Row 1: Both labels side by side
+            % Create LowClipLabel (Left)
             app.LowClipLabel = uilabel(app.EnhancementGrid);
             app.LowClipLabel.Text = 'Low Clip (0%)';
             app.LowClipLabel.Layout.Row = 1;
-            app.LowClipLabel.Layout.Column = [1 2];
+            app.LowClipLabel.Layout.Column = 1;
+            app.LowClipLabel.HorizontalAlignment = 'center';
 
-            % Create LowClipSlider
+            % Create HighClipLabel (Right)
+            app.HighClipLabel = uilabel(app.EnhancementGrid);
+            app.HighClipLabel.Text = 'High Clip (100%)';
+            app.HighClipLabel.Layout.Row = 1;
+            app.HighClipLabel.Layout.Column = 2;
+            app.HighClipLabel.HorizontalAlignment = 'center';
+
+            % Row 2: Both sliders side by side
+            % Create LowClipSlider (Left)
             app.LowClipSlider = uislider(app.EnhancementGrid);
             app.LowClipSlider.Limits = [0 50];
             app.LowClipSlider.ValueChangedFcn = createCallbackFcn(app, @LowClipSliderValueChanged, true);
             app.LowClipSlider.Layout.Row = 2;
-            app.LowClipSlider.Layout.Column = [1 2];
+            app.LowClipSlider.Layout.Column = 1;
 
-            % Create LowClipValueLabel
-            app.LowClipValueLabel = uilabel(app.EnhancementGrid);
-            app.LowClipValueLabel.Text = '0.000';
-            app.LowClipValueLabel.Layout.Row = 3;
-            app.LowClipValueLabel.Layout.Column = [1 2];
-
-            % Create HighClipLabel
-            app.HighClipLabel = uilabel(app.EnhancementGrid);
-            app.HighClipLabel.Text = 'High Clip (100%)';
-            app.HighClipLabel.Layout.Row = 4;
-            app.HighClipLabel.Layout.Column = [1 2];
-
-            % Create HighClipSlider
+            % Create HighClipSlider (Right)
             app.HighClipSlider = uislider(app.EnhancementGrid);
             app.HighClipSlider.Limits = [50 100];
             app.HighClipSlider.Value = 100;
             app.HighClipSlider.ValueChangedFcn = createCallbackFcn(app, @HighClipSliderValueChanged, true);
-            app.HighClipSlider.Layout.Row = 5;
-            app.HighClipSlider.Layout.Column = [1 2];
+            app.HighClipSlider.Layout.Row = 2;
+            app.HighClipSlider.Layout.Column = 2;
 
-            % Create HighClipValueLabel
+            % Row 3: Both value labels side by side
+            % Create LowClipValueLabel (Left)
+            app.LowClipValueLabel = uilabel(app.EnhancementGrid);
+            app.LowClipValueLabel.Text = '0.000';
+            app.LowClipValueLabel.Layout.Row = 3;
+            app.LowClipValueLabel.Layout.Column = 1;
+            app.LowClipValueLabel.HorizontalAlignment = 'center';
+
+            % Create HighClipValueLabel (Right)
             app.HighClipValueLabel = uilabel(app.EnhancementGrid);
             app.HighClipValueLabel.Text = '1.000';
-            app.HighClipValueLabel.Layout.Row = 6;
-            app.HighClipValueLabel.Layout.Column = 1;
+            app.HighClipValueLabel.Layout.Row = 3;
+            app.HighClipValueLabel.Layout.Column = 2;
+            app.HighClipValueLabel.HorizontalAlignment = 'center';
 
+            % Row 4: Reset button centered across both columns
             % Create ResetClipButton
             app.ResetClipButton = uibutton(app.EnhancementGrid, 'push');
             app.ResetClipButton.ButtonPushedFcn = createCallbackFcn(app, @ResetClipButtonPushed, true);
-            app.ResetClipButton.Layout.Row = 6;
-            app.ResetClipButton.Layout.Column = 2;
-            app.ResetClipButton.Text = 'Reset';
+            app.ResetClipButton.Layout.Row = 4;
+            app.ResetClipButton.Layout.Column = [1 2];
+            app.ResetClipButton.Text = 'Reset Clipping';
         end
 
         function createAnnotationControls(app)
@@ -543,14 +550,15 @@ classdef WaferMapAnnotator < matlab.apps.AppBase
             % Update status
             app.StatusLabel.Text = 'Application initialized. Select a folder to begin.';
             
-            fprintf('\n=== Enhanced Wafer Map Annotator (Fixed Undo/Redo) ===\n');
+            fprintf('\n=== Enhanced Wafer Map Annotator (Horizontal Layout) ===\n');
             fprintf('Improvements:\n');
             fprintf('1. Brush size starts at 1 (integer steps 1-10)\n');
             fprintf('2. Polygon close tolerance reduced to 5 pixels\n');
             fprintf('3. Fixed zoom state preservation during annotation\n');
             fprintf('4. Enhanced polygon controls with keyboard shortcuts\n');
             fprintf('5. Smart Cancel Polygon button with visual feedback\n');
-            fprintf('6. *** FIXED: Undo/Redo functionality now working ***\n');
+            fprintf('6. FIXED: Undo/Redo functionality now working\n');
+            fprintf('7. NEW: Horizontal layout for Image Enhancement panel\n');
         end
     end
 
