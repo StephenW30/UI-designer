@@ -1347,16 +1347,36 @@ classdef WaferMapAnnotator < matlab.apps.AppBase
                         app.originalMap = data.dw_image;
                         processImageData(app);
                         
-                        % MODIFIED: Calculate wafer size
-                        if ~isempty(app.pixelSizeMm)
-                            [h, w] = size(app.originalMap);
+                        % MODIFIED: Calculate missing parameter based on what user provided
+                        [h, w] = size(app.originalMap);
+                        
+                        if ~isempty(app.pixelSizeMm) && isempty(app.waferSizeMM)
+                            % User provided pixel size, calculate wafer size
                             app.waferSizeMM = w * app.pixelSizeMm;
                             app.WaferSizeEditField.Value = app.waferSizeMM;
                             
                             fprintf('Image loaded: %dx%d pixels\n', h, w);
-                            fprintf('Wafer size calculated: %.2f mm × %.2f mm\n', ...
-                                w * app.pixelSizeMm, h * app.pixelSizeMm);
-                            fprintf('Using wafer diameter: %.2f mm\n', app.waferSizeMM);
+                            fprintf('Wafer size calculated: %.2f mm (based on %.4f mm/pixel)\n', ...
+                                app.waferSizeMM, app.pixelSizeMm);
+                            
+                        elseif isempty(app.pixelSizeMm) && ~isempty(app.waferSizeMM)
+                            % User provided wafer size, calculate pixel size
+                            app.pixelSizeMm = app.waferSizeMM / w;
+                            app.PixelSizeEditField.Value = app.pixelSizeMm;
+                            
+                            fprintf('Image loaded: %dx%d pixels\n', h, w);
+                            fprintf('Pixel size calculated: %.4f mm/pixel (based on %.2f mm wafer)\n', ...
+                                app.pixelSizeMm, app.waferSizeMM);
+                            
+                        elseif ~isempty(app.pixelSizeMm) && ~isempty(app.waferSizeMM)
+                            % Both parameters exist, recalculate to ensure consistency
+                            % Priority to pixel size, update wafer size
+                            app.waferSizeMM = w * app.pixelSizeMm;
+                            app.WaferSizeEditField.Value = app.waferSizeMM;
+                            
+                            fprintf('Image loaded: %dx%d pixels\n', h, w);
+                            fprintf('Parameters updated - Pixel: %.4f mm, Wafer: %.2f mm\n', ...
+                                app.pixelSizeMm, app.waferSizeMM);
                         end
                         
                         setupImageDisplay(app);
@@ -1382,8 +1402,8 @@ classdef WaferMapAnnotator < matlab.apps.AppBase
                         app.cancelCurrentPolygon();
                         app.clearMouseCallbacks();
                         
-                        app.StatusLabel.Text = sprintf('Loaded %d/%d: %s (Wafer: %.1fmm)', ...
-                            app.currentImageIndex, length(app.imageFiles), currentFile, app.waferSizeMM);
+                        app.StatusLabel.Text = sprintf('Loaded %d/%d: %s (Wafer: %.1fmm, Pixel: %.4fmm)', ...
+                            app.currentImageIndex, length(app.imageFiles), currentFile, app.waferSizeMM, app.pixelSizeMm);
                     else
                         app.StatusLabel.Text = 'File does not contain dw_image field';
                     end
