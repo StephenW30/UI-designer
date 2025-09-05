@@ -1,8 +1,6 @@
 # radon_from_scratch_s_theta.py
-# Author: GPT-5 Thinking
 # -----------------------------------------------------------
 # Radon transform implemented from scratch using only NumPy.
-# 纯 NumPy "从零实现" Radon 变换（无现成库）
 # -----------------------------------------------------------
 # ✅ 输出正弦图的形状为 (num_s, num_angles)：
 #    - 行（纵轴 y）：探测器坐标 s
@@ -364,6 +362,13 @@ if __name__ == "__main__":
         plt.yticks(np.arange(0, h+1, 100))
 
         # 右图：正弦图（横轴=角度 θ，纵轴=距离 s）
+        s_min = s.min()
+        s_max = s.max()
+        step = 100
+
+        # 以0为中心对称生成ticks
+        max_abs = int(np.ceil(max(abs(s_min), abs(s_max))))
+        ticks = np.arange(-max_abs, max_abs + 1, step)
         # Right: sinogram (x = θ, y = s)
         plt.subplot(1, 2, 2)
         plt.title("Sinogram (x = θ, y = s)", fontsize=14)
@@ -379,7 +384,7 @@ if __name__ == "__main__":
         plt.xlim(angles_deg.min(), angles_deg.max())
         plt.ylim(s.min(), s.max())
         plt.xticks(np.arange(0, 180, 20))
-        plt.yticks(np.arange(s.min(), s.max()+1, 200))
+        plt.yticks(ticks)
         plt.grid(True, alpha=0.3)
         plt.colorbar(im2, label="Line integral")
         
